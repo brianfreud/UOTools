@@ -1,0 +1,108 @@
+<html>
+<head>
+<style>
+input, select {
+    margin-bottom: .7rem;
+}
+</style>
+<script>
+// version 1.01
+let getVal = (name) => document.getElementById(name).value;
+
+let getInputText = () => {
+    return getVal('inputText').replace(/\n/g, ' ');
+};
+
+let convertText = function (lang1, lang2, input) {
+        let url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${lang1}&tl=${lang2}&dt=t&q=${encodeURI(input)}`;
+        return fetch(url)
+            .then(response => response.json())
+            .then((data) => data[0].map((v, i) => data[0][i][0]).join(''))
+                .then(response => response.replace(/([﹗！!‼⁉﹖？\?⁈⁇﹒\．\.\｡\。‽⸮」』》»]+)/g, '$1\n\n'));
+            };
+
+        let makeParam = (name) => `| ${name} = ${getVal(name)}`;
+
+        document.addEventListener('click', function (event) {
+            if (!event.target.matches('#generate')) return;
+            event.preventDefault();
+            let inputText = getInputText();
+
+            let lang,
+                origlang = document.getElementById('origlang').value;
+            switch (origlang) {
+            case 'en':
+                lang = 'English'; break;
+            case 'fr':
+                lang = 'French'; break;
+            case 'de':
+                lang = 'German'; break;
+            case 'ja':
+                lang = 'Japanese'; break;
+            case 'ko':
+                lang = 'Korean'; break;
+            case 'es':
+                lang = 'Spanish'; break;
+            }
+
+            let template = `{{PlayerFiction
+${makeParam('title')}
+${makeParam('author')}
+| origlang = ${lang}
+${makeParam('shard')}
+${makeParam('year')}
+${makeParam('month')}
+${makeParam('day')}`;
+
+let counter = 0;
+[['en','english'],['fr','french'],['de','german'],['ja','japanese'],['ko','korean'],['es','spanish']].forEach(async (i) => {
+                if (origlang != i[0]) {
+                    await convertText(origlang, i[0], inputText).then(output => {
+                        counter++;
+                        template = `${template}
+|------------------
+| ${i[1]} = 
+${output}`.trim();
+                    });
+                } else {
+                    counter++;
+                    template = `${template}
+|------------------
+| ${i[1]} = 
+${inputText.replace(/([﹗！!‼⁉﹖？\?⁈⁇﹒\．\.\｡\。‽⸮」』》»]+)/g, '$1\n\n')}`.trim();
+                }
+                if (counter == 6) {
+                template = `${template}
+}}`;
+document.getElementById('outputTemplate').value = template.replace(/\n\040/g,'\n');
+                }
+            });
+        }, false);
+</script>
+</head>
+<body>
+<body><label for="title">Title:</label> <input type="text" id="title" name="title"><br>
+<label for="author">Author:</label> <input type="text" id="author" name="author"><br>
+<label for="shard">Shard:</label> <input type="text" id="shard" name="shard"><br>
+<label for="origlang">Original language:</label>
+<select id="origlang" name="origlang">
+<option value="en">English</option>
+<option value="fr">French</option>
+<option value="de">German</option>
+<option value="ja">Japanese</option>
+<option value="ko">Korean</option>
+<option value="es">Spanish</option>
+</select><br>
+Publication date (can be left blank, use numbers not month names):<br>
+<label for="year">Year:</label> <input type="text" id="year" name="year" style="width: 4rem;">
+<label for="month">Month:</label> <input type="text" id="month" name="month" style="width: 2rem;">
+<label for="day">Day:</label> <input type="text" id="day" name="day" style="width: 2rem;">
+<br>
+Book text:<br>
+<textarea id="inputText" style="height: 20rem; width: 18rem;"></textarea><br><br>
+<input id="generate" type="button" value="Generate template"><br><br>
+
+Generated template text:<br>
+<textarea id="outputTemplate" style="height: 20rem; width: 50rem;"></textarea><br><br>
+
+</body></html>
